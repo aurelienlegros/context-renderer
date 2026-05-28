@@ -21,11 +21,6 @@ classifiers = [
     "Topic :: Database",
     "Topic :: Documentation",
 ]
-[project.urls]
-Homepage = "https://github.com/aurelienlegros/context-renderer"
-Repository = "https://github.com/aurelienlegros/context-renderer"
-Issues = "https://github.com/aurelienlegros/context-renderer/issues"
-
 dependencies = [
     "pyodbc>=5.0",
     "SQLAlchemy>=2.0",
@@ -33,6 +28,11 @@ dependencies = [
     "jinja2>=3.1",
     "tabulate>=0.9",
 ]
+
+[project.urls]
+Homepage = "https://github.com/aurelienlegros/context-renderer"
+Repository = "https://github.com/aurelienlegros/context-renderer"
+Issues = "https://github.com/aurelienlegros/context-renderer/issues"
 
 [project.optional-dependencies]
 dev = [
