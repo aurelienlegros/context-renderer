@@ -119,37 +119,66 @@ class DatabaseInspector:
     # Public
     # ------------------------------------------------------------------
 
-    def inspect(self, schemas: list[str] | None = None, verbose: bool = True) -> DatabaseSchema:
+    def inspect(
+        self,
+        schemas: list[str] | None = None,
+        verbose: bool = True,
+        limit: int | None = None,
+    ) -> DatabaseSchema:
         """
         Run a full inspection of the database.
 
         Args:
             schemas: Limit to these schemas. ``None`` = all non-system schemas.
             verbose: Print progress to stdout.
+            limit:   Process only the first N tables/views (useful for quick tests).
         """
+        errors: list[str] = []
+
         with self.engine.connect() as conn:
             db_name = self._get_database_name(conn)
             all_schemas = self._get_schemas(conn)
             target_schemas = schemas or all_schemas
 
             tables = self._get_tables(conn, target_schemas)
+            if limit is not None:
+                tables = tables[:limit]
             total = len(tables)
             if verbose:
-                print(f"[inspect] {db_name} — {total} tables/views found, processing...")
+                suffix = f" (limited to {limit})" if limit is not None else ""
+                print(f"[inspect] {db_name} — {total} tables/views found{suffix}, processing...")
 
             for i, table in enumerate(tables, 1):
                 if verbose:
                     print(f"  [{i}/{total}] {table.schema}.{table.name}", flush=True)
-                table.columns = self._get_columns(conn, table.schema, table.name)
-                table.foreign_keys = self._get_foreign_keys(conn, table.schema, table.name)
-                table.indexes = self._get_indexes(conn, table.schema, table.name)
+
+                for step, attr, fn in [
+                    ("columns",      "columns",      lambda: self._get_columns(conn, table.schema, table.name)),
+                    ("foreign_keys", "foreign_keys", lambda: self._get_foreign_keys(conn, table.schema, table.name)),
+                    ("indexes",      "indexes",      lambda: self._get_indexes(conn, table.schema, table.name)),
+                ]:
+                    try:
+                        setattr(table, attr, fn())
+                    except Exception as exc:
+                        msg = f"{table.full_name} [{step}]: {exc}"
+                        errors.append(msg)
+                        if verbose:
+                            print(f"    ! {msg}", flush=True)
+
                 if table.table_type == "TABLE":
-                    table.row_count = self._get_row_count(conn, table.schema, table.name)
+                    try:
+                        table.row_count = self._get_row_count(conn, table.schema, table.name)
+                    except Exception as exc:
+                        msg = f"{table.full_name} [row_count]: {exc}"
+                        errors.append(msg)
+                        if verbose:
+                            print(f"    ! {msg}", flush=True)
 
             routines = self._get_routines(conn, target_schemas)
 
         if verbose:
-            print(f"[inspect] Done — {total} tables/views, {len(routines)} routines.")
+            err_suffix = f", {len(errors)} error(s)" if errors else ""
+            print(f"[inspect] Done — {total} tables/views, {len(routines)} routines{err_suffix}.")
 
         return DatabaseSchema(
             database_name=db_name,
@@ -257,7 +286,7 @@ class DatabaseInspector:
         rows = conn.execute(text("""
             SELECT
                 i.name AS index_name,
-                STRING_AGG(c.name, ', ') WITHIN GROUP (ORDER BY ic.key_ordinal) AS cols,
+                STRING_AGG(CAST(c.name AS nvarchar(max)), ', ') WITHIN GROUP (ORDER BY ic.key_ordinal) AS cols,
                 i.is_unique,
                 i.is_primary_key
             FROM sys.indexes i

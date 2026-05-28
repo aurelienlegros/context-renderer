@@ -12,6 +12,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `DatabaseInspector.inspect(verbose=True)` — prints real-time progress per table/view (name, index/total) plus a summary line on completion
 - `DataMetrics.compute_all(tables, verbose=True)` — prints progress per table (name, column count, index/total) plus a summary line on completion
 - `DataMetrics.compute(table, verbose=True)` — prints a single progress line when called directly; silenced automatically when called from `compute_all` to avoid duplicates
+- `DatabaseInspector.inspect(limit=N)` — process only the first N tables/views, useful for quick exploration
+
+### Changed
+- `DatabaseInspector.inspect`: per-table sub-queries (columns, foreign keys, indexes, row count) are now individually wrapped in try/except — a failure on one table no longer aborts the whole inspection; errors are reported inline when `verbose=True` and counted in the summary
+- `DataMetrics.compute`: per-column metrics are now individually wrapped in try/except — a failing column is skipped without interrupting the rest of the table
+- `DataMetrics.compute_all`: a failing table is skipped and reported inline instead of raising; error count shown in the final summary
+
+### Fixed
+- `_get_indexes`: `STRING_AGG` result truncated at 8000 bytes on indexes with many columns — fixed by casting `c.name` to `nvarchar(max)` before aggregation
 
 ## [0.1.3] — 2026-05-28
 

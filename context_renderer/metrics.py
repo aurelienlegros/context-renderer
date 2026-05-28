@@ -102,12 +102,20 @@ class DataMetrics:
         if verbose:
             ncols = len(table.columns)
             print(f"[metrics] {table.schema}.{table.name} ({ncols} cols)...", flush=True)
+        errors: list[str] = []
         with self.engine.connect() as conn:
             row_count = table.row_count or self._count_rows(conn, table.schema, table.name)
-            col_metrics = [
-                self._column_metrics(conn, table.schema, table.name, col, row_count)
-                for col in table.columns
-            ]
+            col_metrics = []
+            for col in table.columns:
+                try:
+                    col_metrics.append(
+                        self._column_metrics(conn, table.schema, table.name, col, row_count)
+                    )
+                except Exception as exc:
+                    msg = f"{table.schema}.{table.name}.{col.name}: {exc}"
+                    errors.append(msg)
+                    if verbose:
+                        print(f"    ! {msg}", flush=True)
         return TableMetrics(
             schema=table.schema,
             table_name=table.name,
@@ -122,13 +130,21 @@ class DataMetrics:
         if verbose:
             print(f"[metrics] Computing metrics for {total} tables...")
         results = []
+        errors: list[str] = []
         for i, t in enumerate(actual, 1):
             if verbose:
                 ncols = len(t.columns)
                 print(f"  [{i}/{total}] {t.schema}.{t.name} ({ncols} cols)...", flush=True)
-            results.append(self.compute(t, verbose=False))
+            try:
+                results.append(self.compute(t, verbose=False))
+            except Exception as exc:
+                msg = f"{t.schema}.{t.name}: {exc}"
+                errors.append(msg)
+                if verbose:
+                    print(f"    ! {msg}", flush=True)
         if verbose:
-            print(f"[metrics] Done.")
+            err_suffix = f", {len(errors)} error(s)" if errors else ""
+            print(f"[metrics] Done{err_suffix}.")
         return results
 
     # ------------------------------------------------------------------
