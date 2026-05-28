@@ -21,7 +21,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # ── Install context_renderer package with notebook extras ────────────────────
 COPY context_renderer/ /app/context_renderer/
 COPY pyproject.toml /app/pyproject.toml
-COPY README.md /app/README.md
+COPY PACKAGE.md /app/PACKAGE.md
 RUN uv pip install --system --no-cache -e "/app[notebooks]"
 
 # ── Jupyter config ───────────────────────────────────────────────────────────
