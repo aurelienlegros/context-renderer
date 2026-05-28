@@ -1,0 +1,15 @@
+services:
+  jupyter:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8888:8888"
+    volumes:
+      # Live-reload notebooks without rebuilding
+      - ./notebooks:/notebooks
+      # Live-reload the package source during development
+      - ./context_renderer:/app/context_renderer
+    env_file:
+      - .env
+    restart: unless-stopped
