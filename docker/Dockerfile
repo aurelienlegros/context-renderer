@@ -15,15 +15,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Python deps ──────────────────────────────────────────────────────────────
-COPY docker/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# ── Install uv ───────────────────────────────────────────────────────────────
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# ── Install context_renderer package (editable) ──────────────────────────────
+# ── Install context_renderer package with notebook extras ────────────────────
 COPY context_renderer/ /app/context_renderer/
 COPY pyproject.toml /app/pyproject.toml
 COPY README.md /app/README.md
-RUN pip install --no-cache-dir -e /app
+RUN uv pip install --system --no-cache -e "/app[notebooks]"
 
 # ── Jupyter config ───────────────────────────────────────────────────────────
 RUN jupyter notebook --generate-config \

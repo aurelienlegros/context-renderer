@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.backends.legacy:build"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "context-renderer"
@@ -35,10 +35,13 @@ dev = [
     "pytest-mock>=3.12",
     "ruff>=0.4",
 ]
+notebooks = [
+    "jupyter>=1.1",
+    "notebook>=7.3",
+]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["context_renderer*"]
+[tool.hatch.build.targets.wheel]
+packages = ["context_renderer"]
 
 [tool.ruff]
 line-length = 100
