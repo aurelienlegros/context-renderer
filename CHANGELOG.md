@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.1.4] — 2026-05-28
+
+### Added
+- `DatabaseInspector.inspect(verbose=True)` — prints real-time progress per table/view (name, index/total) plus a summary line on completion
+- `DataMetrics.compute_all(tables, verbose=True)` — prints progress per table (name, column count, index/total) plus a summary line on completion
+- `DataMetrics.compute(table, verbose=True)` — prints a single progress line when called directly; silenced automatically when called from `compute_all` to avoid duplicates
+
 ## [0.1.3] — 2026-05-28
 
 ### Fixed
