@@ -97,8 +97,11 @@ class DataMetrics:
     # Public
     # ------------------------------------------------------------------
 
-    def compute(self, table: TableInfo) -> TableMetrics:
+    def compute(self, table: TableInfo, verbose: bool = True) -> TableMetrics:
         """Compute metrics for a single table."""
+        if verbose:
+            ncols = len(table.columns)
+            print(f"[metrics] {table.schema}.{table.name} ({ncols} cols)...", flush=True)
         with self.engine.connect() as conn:
             row_count = table.row_count or self._count_rows(conn, table.schema, table.name)
             col_metrics = [
@@ -112,9 +115,21 @@ class DataMetrics:
             column_metrics=col_metrics,
         )
 
-    def compute_all(self, tables: list[TableInfo]) -> list[TableMetrics]:
+    def compute_all(self, tables: list[TableInfo], verbose: bool = True) -> list[TableMetrics]:
         """Compute metrics for all tables (views are skipped)."""
-        return [self.compute(t) for t in tables if t.table_type == "TABLE"]
+        actual = [t for t in tables if t.table_type == "TABLE"]
+        total = len(actual)
+        if verbose:
+            print(f"[metrics] Computing metrics for {total} tables...")
+        results = []
+        for i, t in enumerate(actual, 1):
+            if verbose:
+                ncols = len(t.columns)
+                print(f"  [{i}/{total}] {t.schema}.{t.name} ({ncols} cols)...", flush=True)
+            results.append(self.compute(t, verbose=False))
+        if verbose:
+            print(f"[metrics] Done.")
+        return results
 
     # ------------------------------------------------------------------
     # Private

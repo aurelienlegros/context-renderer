@@ -119,12 +119,13 @@ class DatabaseInspector:
     # Public
     # ------------------------------------------------------------------
 
-    def inspect(self, schemas: list[str] | None = None) -> DatabaseSchema:
+    def inspect(self, schemas: list[str] | None = None, verbose: bool = True) -> DatabaseSchema:
         """
         Run a full inspection of the database.
 
         Args:
             schemas: Limit to these schemas. ``None`` = all non-system schemas.
+            verbose: Print progress to stdout.
         """
         with self.engine.connect() as conn:
             db_name = self._get_database_name(conn)
@@ -132,7 +133,13 @@ class DatabaseInspector:
             target_schemas = schemas or all_schemas
 
             tables = self._get_tables(conn, target_schemas)
-            for table in tables:
+            total = len(tables)
+            if verbose:
+                print(f"[inspect] {db_name} — {total} tables/views found, processing...")
+
+            for i, table in enumerate(tables, 1):
+                if verbose:
+                    print(f"  [{i}/{total}] {table.schema}.{table.name}", flush=True)
                 table.columns = self._get_columns(conn, table.schema, table.name)
                 table.foreign_keys = self._get_foreign_keys(conn, table.schema, table.name)
                 table.indexes = self._get_indexes(conn, table.schema, table.name)
@@ -140,6 +147,9 @@ class DatabaseInspector:
                     table.row_count = self._get_row_count(conn, table.schema, table.name)
 
             routines = self._get_routines(conn, target_schemas)
+
+        if verbose:
+            print(f"[inspect] Done — {total} tables/views, {len(routines)} routines.")
 
         return DatabaseSchema(
             database_name=db_name,
